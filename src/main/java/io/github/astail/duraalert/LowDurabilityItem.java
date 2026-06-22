@@ -1,0 +1,27 @@
+package io.github.astail.duraalert;
+
+import net.kyori.adventure.text.Component;
+
+/**
+ * 耐久値が閾値を下回ったアイテム 1 件分の情報。
+ *
+ * @param key       通知の重複抑止に使う安定キー（スロット種別 + マテリアル）
+ * @param slotLabel 表示用のスロット名（例: メインハンド / ヘルメット / インベントリ#3）
+ * @param name      アイテムの表示名（カスタム名 or バニラ名）
+ * @param remaining 残り耐久値
+ * @param max       最大耐久値
+ * @param percent   残り耐久値の割合（%）
+ */
+public record LowDurabilityItem(
+        String key,
+        String slotLabel,
+        Component name,
+        int remaining,
+        int max,
+        double percent) {
+
+    /** 表示用に切り捨てた整数パーセント。 */
+    public int displayPercent() {
+        return (int) Math.floor(percent);
+    }
+}

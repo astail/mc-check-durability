@@ -1,0 +1,21 @@
+# ───────────────────────────────────────────────
+#  DuraAlert 設定ファイル
+# ───────────────────────────────────────────────
+
+# enabled: 耐久値の監視・通知を行うかどうか。
+#          /duraalert on | off でも切り替えられます（その場合この値も書き換わります）。
+enabled: true
+
+# threshold-percent: 残り耐久値がこの割合(%)を下回ったら通知します（1〜100）。
+threshold-percent: 10
+
+# check-interval-ticks: 何 tick ごとに耐久値をチェックするか。20 tick = 1 秒。
+#                       最小 20（1 秒）。短くすると反応は速くなりますが負荷が増えます。
+check-interval-ticks: 100
+
+# notify-sound: 通知時にベル音を鳴らすかどうか。
+notify-sound: true
+
+# check-inventory: インベントリ内に入れているアイテムもチェックするか。
+#                  false の場合は装備（防具・両手）だけを対象にします。
+check-inventory: true

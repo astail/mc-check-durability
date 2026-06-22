@@ -1,0 +1,25 @@
+name: DuraAlert
+version: 1.0.0
+main: io.github.astail.duraalert.DuraAlertPlugin
+description: "持っているアイテムや装備の耐久値が一定割合を下回ったら、本人へ通知するプラグインです。"
+api-version: '26.1.2'
+author: astail
+
+commands:
+  duraalert:
+    description: "耐久値アラートの確認・設定を行います。"
+    usage: "/duraalert <check|status|mute|unmute|on|off|reload>"
+    aliases: [da]
+    permission: duraalert.use
+    permission-message: "§cこのコマンドを実行する権限がありません。"
+
+permissions:
+  duraalert.notify:
+    description: "耐久値が低下したときに通知を受け取ることを許可します。"
+    default: true
+  duraalert.use:
+    description: "/duraalert で確認・自分の設定（check / status / mute）を行うことを許可します。"
+    default: true
+  duraalert.manage:
+    description: "/duraalert on|off|reload など、サーバー全体に影響する操作を許可します。"
+    default: op

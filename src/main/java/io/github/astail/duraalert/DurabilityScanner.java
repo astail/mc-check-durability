@@ -44,20 +44,20 @@ public final class DurabilityScanner {
         PlayerInventory inv = player.getInventory();
         List<LowDurabilityItem> found = new ArrayList<>();
         int heldSlot = inv.getHeldItemSlot();
-        // 使用中のアイテム（弓を引く/食べる/盾構え等）。固有 ID の書き戻しで使用アクションを
-        // 中断しないよう、対象アイテムの判定に使う。
-        ItemStack activeItem = player.hasActiveItem() ? player.getActiveItem() : null;
+        // 使用中（弓を引く/食べる/盾構え等）の手（HAND か OFF_HAND、無ければ null）。固有 ID の書き戻しで
+        // 使用アクションを中断しないよう、この手のアイテムだけは初回スタンプを見送る判定に使う。
+        EquipmentSlot usingHand = player.hasActiveItem() ? player.getActiveItemHand() : null;
 
         // 装備スロット（常にチェック）。メインハンドもここで見る。
-        addEquip(found, inv, EquipmentSlot.HEAD, "ヘルメット", thresholdPercent, uidKey, assignIdentity, activeItem);
-        addEquip(found, inv, EquipmentSlot.CHEST, "チェストプレート", thresholdPercent, uidKey, assignIdentity, activeItem);
-        addEquip(found, inv, EquipmentSlot.LEGS, "レギンス", thresholdPercent, uidKey, assignIdentity, activeItem);
-        addEquip(found, inv, EquipmentSlot.FEET, "ブーツ", thresholdPercent, uidKey, assignIdentity, activeItem);
-        addEquip(found, inv, EquipmentSlot.HAND, "メインハンド", thresholdPercent, uidKey, assignIdentity, activeItem);
-        addEquip(found, inv, EquipmentSlot.OFF_HAND, "オフハンド", thresholdPercent, uidKey, assignIdentity, activeItem);
+        addEquip(found, inv, EquipmentSlot.HEAD, "ヘルメット", thresholdPercent, uidKey, assignIdentity, usingHand);
+        addEquip(found, inv, EquipmentSlot.CHEST, "チェストプレート", thresholdPercent, uidKey, assignIdentity, usingHand);
+        addEquip(found, inv, EquipmentSlot.LEGS, "レギンス", thresholdPercent, uidKey, assignIdentity, usingHand);
+        addEquip(found, inv, EquipmentSlot.FEET, "ブーツ", thresholdPercent, uidKey, assignIdentity, usingHand);
+        addEquip(found, inv, EquipmentSlot.HAND, "メインハンド", thresholdPercent, uidKey, assignIdentity, usingHand);
+        addEquip(found, inv, EquipmentSlot.OFF_HAND, "オフハンド", thresholdPercent, uidKey, assignIdentity, usingHand);
 
         // インベントリ内（任意）。メインハンド（= heldSlot）は上で見ているので、/check の二重表示を
-        // 防ぐためスキップする。
+        // 防ぐためスキップする。インベントリのアイテムは「使用中」になり得ないので itemInUse は常に false。
         if (checkInventory) {
             ItemStack[] storage = inv.getStorageContents();
             for (int i = 0; i < storage.length; i++) {
@@ -66,18 +66,21 @@ public final class DurabilityScanner {
                 }
                 final int slot = i;
                 addIfLow(found, storage[i], "インベントリ#" + i, thresholdPercent, uidKey, assignIdentity,
-                        it -> inv.setItem(slot, it), activeItem);
+                        it -> inv.setItem(slot, it), false);
             }
         }
         return found;
     }
 
-    /** 装備スロット 1 つを評価する。固有 ID を刻んだ場合は同じスロットへ書き戻す。 */
+    /**
+     * 装備スロット 1 つを評価する。固有 ID を刻んだ場合は同じスロットへ書き戻す。
+     * そのスロットが使用中の手（{@code usingHand}）なら、初回スタンプを見送る（中断回避）。
+     */
     private static void addEquip(List<LowDurabilityItem> out, PlayerInventory inv, EquipmentSlot slot,
                                  String slotLabel, double thresholdPercent, NamespacedKey uidKey,
-                                 boolean assignIdentity, ItemStack activeItem) {
+                                 boolean assignIdentity, EquipmentSlot usingHand) {
         addIfLow(out, inv.getItem(slot), slotLabel, thresholdPercent, uidKey, assignIdentity,
-                it -> inv.setItem(slot, it), activeItem);
+                it -> inv.setItem(slot, it), slot == usingHand);
     }
 
     /**
@@ -88,15 +91,15 @@ public final class DurabilityScanner {
      * {@code writeBack} でスロットへ書き戻す。これにより、同じ種別・同じ表示名のアイテムでも個体ごとに
      * 区別でき、スロット間を移動してもキーが変わらない（＝一度通知したら回復するまで再通知されない）。
      *
-     * <p>ただし、使用中（{@code activeItem}）のアイテムへ初回の固有 ID を書き戻すと弓を引く・食べる等の
+     * <p>ただし、使用中（{@code itemInUse}）のアイテムへ初回の固有 ID を書き戻すと弓を引く・食べる等の
      * 使用アクションが中断され得るため、その tick はスタンプを見送り、次回スキャンで検知・通知する。
      *
-     * @param writeBack  固有 ID を刻んだ item を元のスロットへ書き戻す処理
-     * @param activeItem そのプレイヤーが現在使用中のアイテム（無ければ null）。書き戻し中断の回避に使う。
+     * @param writeBack 固有 ID を刻んだ item を元のスロットへ書き戻す処理
+     * @param itemInUse この item が現在使用中なら true。初回スタンプの書き戻しによる使用中断を避けるため見送る。
      */
     private static void addIfLow(List<LowDurabilityItem> out, ItemStack item, String slotLabel,
                                  double thresholdPercent, NamespacedKey uidKey, boolean assignIdentity,
-                                 Consumer<ItemStack> writeBack, ItemStack activeItem) {
+                                 Consumer<ItemStack> writeBack, boolean itemInUse) {
         if (item == null || item.getType().isAir()) {
             return;
         }
@@ -123,7 +126,7 @@ public final class DurabilityScanner {
         } else if (assignIdentity) {
             // 使用中アイテムへの書き戻しは使用アクションを中断し得るので、この tick は見送る
             // （固有 ID 未付与＝まだ通知していないので、次回スキャンで検知・通知すればよい）。
-            if (activeItem != null && item.isSimilar(activeItem)) {
+            if (itemInUse) {
                 return;
             }
             uid = UUID.randomUUID().toString();

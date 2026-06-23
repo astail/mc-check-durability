@@ -16,13 +16,13 @@ DuraAlert は、各プレイヤーの装備・手持ち・インベントリ内�
 
 - **DuraAlertPlugin**: 本体。設定読込、`runTaskTimer` による定期スキャン、通知の組み立て・送信、通知済み状態（`warned`）とミュート（`muted`）の管理、`PlayerQuitEvent` での状態破棄。
 - **DuraAlertCommand**: `/duraalert <check|status|mute|unmute|on|off|reload>` の実処理とタブ補完。
-- **DurabilityScanner**: 状態を持たない純粋ロジック。プレイヤーの装備（防具4・両手）と、必要ならインベントリ内を走査し、閾値未満の破壊可能アイテムを `LowDurabilityItem` のリストで返す。
+- **DurabilityScanner**: プレイヤーの装備（防具4・両手）と、必要ならインベントリ内を走査し、閾値未満の破壊可能アイテムを `LowDurabilityItem` のリストで返す。定期スキャン時（`assignIdentity=true`）は、低耐久アイテムへ個体識別用の固有 ID（`PersistentDataContainer`）を一度だけ刻む副作用を持つ。`/check`（`assignIdentity=false`）は書き込まない。
 - **LowDurabilityItem**: 低耐久アイテム 1 件分（重複抑止キー・スロット名・表示名・残り/最大/割合）の record。
 
 ## 設計上の要点
 
 - **重複通知の抑止は「状態遷移」方式**: プレイヤーごとに通知済みキー集合（`warned`）を持ち、新たに閾値を下回ったアイテムだけ通知する。毎スキャンの最後に `retainAll(現在の低耐久キー)` で、回復・消失したアイテムを集合から外す → 次に下回ったら再通知できる。クールダウンではなくヒステリシス的に動く。
-- **キーはスロット非依存（アイテム種別 + 表示名）**（例: `DIAMOND_SWORD#ダイヤモンドの剣`、表示名は `PlainTextComponentSerializer` でプレーン化）。スロット位置を含めないので、一度通知したアイテムを手持ち⇄インベントリ⇄装備と移動しても再通知されない。回復・消失すれば集合から外れ、再び下回れば通知できる。同一種別・同一表示名のアイテムが複数低耐久だと 1 件にまとまる（許容する制限）。
+- **キーはアイテム固有 ID（スロット非依存・個体ごと）**: 低耐久を初検知した瞬間に各アイテムへ `duraalert:uid`（ランダム UUID）を `PersistentDataContainer` で 1 回だけ刻み、キーを `UID:<uuid>` とする。UID はアイテムと共に永続化されスロット移動に追従するので、手持ち⇄インベントリ⇄装備と移動しても再通知されない。さらに**同一種別・同一表示名のアイテムでも個体ごとに区別**できる。耐久アイテムはスタック数 1 なので「別 NBT でスタックしなくなる」問題は実質発生しない。書き込みは初回低耐久時の 1 回だけ（以降は読むだけ）。回復・消失すれば `warned` から外れ、再び下回れば再通知できる（UID 自体はアイテムに残る）。`/check`（`assignIdentity=false`）は書き込まず、未付与アイテムは種別＋表示名の暫定キー（重複抑止に未使用）で代用。
 - **メインハンドの二重計上を回避**: 装備スロット（`EquipmentSlot.HAND`）で見るため、インベントリ走査では `getHeldItemSlot()` をスキップする。防具・オフハンドは `getStorageContents()` に含まれないので重複しない。
 - **最大耐久値**: `Damageable#hasMaxDamage()` なら `getMaxDamage()`（data component の上書きに追従）、無ければ `Material#getMaxDurability()` を使う。`isUnbreakable()` や max ≤ 0 のアイテムは対象外。
 - **表示名は `ItemStack#effectiveName()`**（カスタム名 or バニラ名の Component）。色が無ければ `colorIfAbsent(GOLD)` で着色。通知音は Adventure の `Sound`（`block.note_block.bell`）。

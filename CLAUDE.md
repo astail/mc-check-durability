@@ -22,7 +22,7 @@ DuraAlert は、各プレイヤーの装備・手持ち・インベントリ内�
 ## 設計上の要点
 
 - **重複通知の抑止は「状態遷移」方式**: プレイヤーごとに通知済みキー集合（`warned`）を持ち、新たに閾値を下回ったアイテムだけ通知する。毎スキャンの最後に `retainAll(現在の低耐久キー)` で、回復・消失したアイテムを集合から外す → 次に下回ったら再通知できる。クールダウンではなくヒステリシス的に動く。
-- **キーはスロット種別 + マテリアル**（例: `EQ:HAND#DIAMOND_SWORD`）。同じスロットのアイテムを別物に差し替えれば、旧アイテムは低耐久でなくなり集合から外れる。
+- **キーはスロット非依存（アイテム種別 + 表示名）**（例: `DIAMOND_SWORD#ダイヤモンドの剣`、表示名は `PlainTextComponentSerializer` でプレーン化）。スロット位置を含めないので、一度通知したアイテムを手持ち⇄インベントリ⇄装備と移動しても再通知されない。回復・消失すれば集合から外れ、再び下回れば通知できる。同一種別・同一表示名のアイテムが複数低耐久だと 1 件にまとまる（許容する制限）。
 - **メインハンドの二重計上を回避**: 装備スロット（`EquipmentSlot.HAND`）で見るため、インベントリ走査では `getHeldItemSlot()` をスキップする。防具・オフハンドは `getStorageContents()` に含まれないので重複しない。
 - **最大耐久値**: `Damageable#hasMaxDamage()` なら `getMaxDamage()`（data component の上書きに追従）、無ければ `Material#getMaxDurability()` を使う。`isUnbreakable()` や max ≤ 0 のアイテムは対象外。
 - **表示名は `ItemStack#effectiveName()`**（カスタム名 or バニラ名の Component）。色が無ければ `colorIfAbsent(GOLD)` で着色。通知音は Adventure の `Sound`（`block.note_block.bell`）。

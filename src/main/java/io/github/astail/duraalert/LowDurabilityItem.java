@@ -5,7 +5,7 @@ import net.kyori.adventure.text.Component;
 /**
  * 耐久値が閾値を下回ったアイテム 1 件分の情報。
  *
- * @param key       通知の重複抑止に使う安定キー（スロット種別 + マテリアル）
+ * @param key       通知の重複抑止に使う安定キー（アイテム種別 + 表示名。スロット非依存）
  * @param slotLabel 表示用のスロット名（例: メインハンド / ヘルメット / インベントリ#3）
  * @param name      アイテムの表示名（カスタム名 or バニラ名）
  * @param remaining 残り耐久値

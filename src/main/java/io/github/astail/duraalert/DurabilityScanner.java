@@ -28,21 +28,24 @@ public final class DurabilityScanner {
     public static List<LowDurabilityItem> scan(Player player, double thresholdPercent, boolean checkInventory) {
         PlayerInventory inv = player.getInventory();
         List<LowDurabilityItem> found = new ArrayList<>();
+        int heldSlot = inv.getHeldItemSlot();
 
         // 装備スロット（常にチェック）。メインハンドもここで見る。
         addIfLow(found, inv.getItem(EquipmentSlot.HEAD), "ヘルメット", "EQ:HEAD", thresholdPercent);
         addIfLow(found, inv.getItem(EquipmentSlot.CHEST), "チェストプレート", "EQ:CHEST", thresholdPercent);
         addIfLow(found, inv.getItem(EquipmentSlot.LEGS), "レギンス", "EQ:LEGS", thresholdPercent);
         addIfLow(found, inv.getItem(EquipmentSlot.FEET), "ブーツ", "EQ:FEET", thresholdPercent);
-        addIfLow(found, inv.getItem(EquipmentSlot.HAND), "メインハンド", "EQ:HAND", thresholdPercent);
+        // メインハンドはホットバーの「現在選択中スロット」そのもの。装備キー(EQ:HAND)にすると
+        // 選択を切り替えるたびに EQ:HAND ⇄ INV:n とキーが変わり再通知されてしまうため、
+        // ホットバーのスロット番号(INV:heldSlot)でキー付けして選択状態に依存しないようにする。
+        addIfLow(found, inv.getItem(EquipmentSlot.HAND), "メインハンド", "INV:" + heldSlot, thresholdPercent);
         addIfLow(found, inv.getItem(EquipmentSlot.OFF_HAND), "オフハンド", "EQ:OFF_HAND", thresholdPercent);
 
-        // インベントリ内（任意）。メインハンドは上で見ているのでスキップして二重計上を防ぐ。
+        // インベントリ内（任意）。メインハンド（= heldSlot）は上で見ているのでスキップして二重計上を防ぐ。
         if (checkInventory) {
             ItemStack[] storage = inv.getStorageContents();
-            int held = inv.getHeldItemSlot();
             for (int i = 0; i < storage.length; i++) {
-                if (i == held) {
+                if (i == heldSlot) {
                     continue;
                 }
                 addIfLow(found, storage[i], "インベントリ#" + i, "INV:" + i, thresholdPercent);

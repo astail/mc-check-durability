@@ -44,14 +44,17 @@ public final class DurabilityScanner {
         PlayerInventory inv = player.getInventory();
         List<LowDurabilityItem> found = new ArrayList<>();
         int heldSlot = inv.getHeldItemSlot();
+        // 使用中のアイテム（弓を引く/食べる/盾構え等）。固有 ID の書き戻しで使用アクションを
+        // 中断しないよう、対象アイテムの判定に使う。
+        ItemStack activeItem = player.hasActiveItem() ? player.getActiveItem() : null;
 
         // 装備スロット（常にチェック）。メインハンドもここで見る。
-        addEquip(found, inv, EquipmentSlot.HEAD, "ヘルメット", thresholdPercent, uidKey, assignIdentity);
-        addEquip(found, inv, EquipmentSlot.CHEST, "チェストプレート", thresholdPercent, uidKey, assignIdentity);
-        addEquip(found, inv, EquipmentSlot.LEGS, "レギンス", thresholdPercent, uidKey, assignIdentity);
-        addEquip(found, inv, EquipmentSlot.FEET, "ブーツ", thresholdPercent, uidKey, assignIdentity);
-        addEquip(found, inv, EquipmentSlot.HAND, "メインハンド", thresholdPercent, uidKey, assignIdentity);
-        addEquip(found, inv, EquipmentSlot.OFF_HAND, "オフハンド", thresholdPercent, uidKey, assignIdentity);
+        addEquip(found, inv, EquipmentSlot.HEAD, "ヘルメット", thresholdPercent, uidKey, assignIdentity, activeItem);
+        addEquip(found, inv, EquipmentSlot.CHEST, "チェストプレート", thresholdPercent, uidKey, assignIdentity, activeItem);
+        addEquip(found, inv, EquipmentSlot.LEGS, "レギンス", thresholdPercent, uidKey, assignIdentity, activeItem);
+        addEquip(found, inv, EquipmentSlot.FEET, "ブーツ", thresholdPercent, uidKey, assignIdentity, activeItem);
+        addEquip(found, inv, EquipmentSlot.HAND, "メインハンド", thresholdPercent, uidKey, assignIdentity, activeItem);
+        addEquip(found, inv, EquipmentSlot.OFF_HAND, "オフハンド", thresholdPercent, uidKey, assignIdentity, activeItem);
 
         // インベントリ内（任意）。メインハンド（= heldSlot）は上で見ているので、/check の二重表示を
         // 防ぐためスキップする。
@@ -63,7 +66,7 @@ public final class DurabilityScanner {
                 }
                 final int slot = i;
                 addIfLow(found, storage[i], "インベントリ#" + i, thresholdPercent, uidKey, assignIdentity,
-                        it -> inv.setItem(slot, it));
+                        it -> inv.setItem(slot, it), activeItem);
             }
         }
         return found;
@@ -72,9 +75,9 @@ public final class DurabilityScanner {
     /** 装備スロット 1 つを評価する。固有 ID を刻んだ場合は同じスロットへ書き戻す。 */
     private static void addEquip(List<LowDurabilityItem> out, PlayerInventory inv, EquipmentSlot slot,
                                  String slotLabel, double thresholdPercent, NamespacedKey uidKey,
-                                 boolean assignIdentity) {
+                                 boolean assignIdentity, ItemStack activeItem) {
         addIfLow(out, inv.getItem(slot), slotLabel, thresholdPercent, uidKey, assignIdentity,
-                it -> inv.setItem(slot, it));
+                it -> inv.setItem(slot, it), activeItem);
     }
 
     /**
@@ -85,11 +88,15 @@ public final class DurabilityScanner {
      * {@code writeBack} でスロットへ書き戻す。これにより、同じ種別・同じ表示名のアイテムでも個体ごとに
      * 区別でき、スロット間を移動してもキーが変わらない（＝一度通知したら回復するまで再通知されない）。
      *
-     * @param writeBack 固有 ID を刻んだ item を元のスロットへ書き戻す処理
+     * <p>ただし、使用中（{@code activeItem}）のアイテムへ初回の固有 ID を書き戻すと弓を引く・食べる等の
+     * 使用アクションが中断され得るため、その tick はスタンプを見送り、次回スキャンで検知・通知する。
+     *
+     * @param writeBack  固有 ID を刻んだ item を元のスロットへ書き戻す処理
+     * @param activeItem そのプレイヤーが現在使用中のアイテム（無ければ null）。書き戻し中断の回避に使う。
      */
     private static void addIfLow(List<LowDurabilityItem> out, ItemStack item, String slotLabel,
                                  double thresholdPercent, NamespacedKey uidKey, boolean assignIdentity,
-                                 Consumer<ItemStack> writeBack) {
+                                 Consumer<ItemStack> writeBack, ItemStack activeItem) {
         if (item == null || item.getType().isAir()) {
             return;
         }
@@ -114,6 +121,11 @@ public final class DurabilityScanner {
         if (uid != null) {
             key = "UID:" + uid;
         } else if (assignIdentity) {
+            // 使用中アイテムへの書き戻しは使用アクションを中断し得るので、この tick は見送る
+            // （固有 ID 未付与＝まだ通知していないので、次回スキャンで検知・通知すればよい）。
+            if (activeItem != null && item.isSimilar(activeItem)) {
+                return;
+            }
             uid = UUID.randomUUID().toString();
             pdc.set(uidKey, PersistentDataType.STRING, uid);
             item.setItemMeta(meta);

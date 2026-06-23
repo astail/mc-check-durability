@@ -1,5 +1,5 @@
 name: DuraAlert
-version: 1.0.0
+version: 1.0.1
 main: io.github.astail.duraalert.DuraAlertPlugin
 description: "持っているアイテムや装備の耐久値が一定割合を下回ったら、本人へ通知するプラグインです。"
 api-version: '26.1.2'

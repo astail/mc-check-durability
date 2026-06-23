@@ -28,7 +28,7 @@ DuraAlert は耐久値を見張り、**危なくなったら（既定 10% 未満
 
 ## 導入
 
-1. `DuraAlert-1.0.0.jar` を `plugins/` に置いてサーバーを再起動します。
+1. `DuraAlert-1.0.1.jar` を `plugins/` に置いてサーバーを再起動します。
 2. 以上で監視が始まります。耐久値が 10% を下回ったアイテムがあると、自動でチャットに通知されます。
 
 例:
@@ -90,7 +90,7 @@ check-inventory: true    # インベントリ内のアイテムもチェック�
 ## ビルド
 
 ```bash
-./deploy.sh        # Mac ネイティブ（JDK 25 + Maven）。生成物: target/DuraAlert-1.0.0.jar
+./deploy.sh        # Mac ネイティブ（JDK 25 + Maven）。生成物: target/DuraAlert-1.0.1.jar
 # または
 mvn -B clean package
 ```
@@ -112,7 +112,7 @@ gh release download --repo astail/mc-check-durability --pattern '*.jar'
 
 ### B. 自分でビルドする
 
-[ビルド](#ビルド) の手順で `target/DuraAlert-1.0.0.jar` を生成します。
+[ビルド](#ビルド) の手順で `target/DuraAlert-1.0.1.jar` を生成します。
 
 ### 配置
 
@@ -120,11 +120,11 @@ gh release download --repo astail/mc-check-durability --pattern '*.jar'
 
 ```bash
 # バインドマウントしている場合（ホスト側 plugins ディレクトリへコピー）
-cp target/DuraAlert-1.0.0.jar /path/to/data/plugins/
+cp target/DuraAlert-1.0.1.jar /path/to/data/plugins/
 docker restart <コンテナ名>
 
 # 名前付きボリューム等の場合（コンテナへ直接コピー）
-docker cp target/DuraAlert-1.0.0.jar <コンテナ名>:/data/plugins/
+docker cp target/DuraAlert-1.0.1.jar <コンテナ名>:/data/plugins/
 docker restart <コンテナ名>
 ```
 
@@ -146,13 +146,13 @@ services:
       VERSION: "26.2"
       PAPER_CHANNEL: "experimental"
       PLUGINS: |
-        https://github.com/astail/mc-check-durability/releases/download/v1.0.0/DuraAlert-1.0.0.jar
+        https://github.com/astail/mc-check-durability/releases/download/v1.0.1/DuraAlert-1.0.1.jar
     volumes:
       - ./data:/data
     restart: unless-stopped
 ```
 
-`PLUGINS` は改行区切りで複数指定できます。バージョンを更新したら、URL の `v1.0.0` とファイル名を新しいリリースに合わせて変更してください（例: `.../download/v1.0.0/DuraAlert-1.0.0.jar`）。
+`PLUGINS` は改行区切りで複数指定できます。バージョンを更新したら、URL の `v1.0.1` とファイル名を新しいリリースに合わせて変更してください（例: `.../download/v1.0.1/DuraAlert-1.0.1.jar`）。
 
 起動ログに以下が出れば成功です。
 

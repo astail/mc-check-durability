@@ -28,7 +28,7 @@ DuraAlert watches durability and **warns you in chat (and with a bell sound) whe
 
 ## Installation
 
-1. Drop `DuraAlert-1.0.0.jar` into `plugins/` and restart.
+1. Drop `DuraAlert-1.0.1.jar` into `plugins/` and restart.
 2. That's it — monitoring starts automatically. When an item drops below 10%, you'll be notified in chat.
 
 Example:
@@ -90,7 +90,7 @@ check-inventory: true    # also check inventory items (false = equipment and bot
 ## Build
 
 ```bash
-./deploy.sh        # macOS native (JDK 25 + Maven). Output: target/DuraAlert-1.0.0.jar
+./deploy.sh        # macOS native (JDK 25 + Maven). Output: target/DuraAlert-1.0.1.jar
 # or
 mvn -B clean package
 ```

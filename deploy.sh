@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # DuraAlert の jar をビルドするだけのスクリプト（Mac ネイティブ / JDK25 + Maven）。
-# 生成物: target/DuraAlert-1.0.0.jar
+# 生成物: target/DuraAlert-1.0.1.jar
 #
 set -euo pipefail
 

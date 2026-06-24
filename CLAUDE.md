@@ -8,7 +8,7 @@ DuraAlert は、各プレイヤーの装備・手持ち・インベントリ内�
 
 ## ビルド要件
 
-- Java 25 + Maven。生成物は `DuraAlert-1.0.1.jar`。
+- Java 25 + Maven。生成物は `DuraAlert-1.1.0.jar`。
 - 唯一の依存は `io.papermc.paper:paper-api:26.1.2.build.69-stable`（provided）。
 - ローカルビルドは `./deploy.sh`（Homebrew `openjdk@25` を想定）。
 

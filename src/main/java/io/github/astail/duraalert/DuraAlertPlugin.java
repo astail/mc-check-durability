@@ -4,6 +4,7 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -33,6 +34,8 @@ public final class DuraAlertPlugin extends JavaPlugin implements Listener {
 
     /** プレイヤーごとに「すでに通知済み」のアイテムキー集合。閾値を下回ったまま重複通知しないために使う。 */
     private final Map<UUID, Set<String>> warned = new HashMap<>();
+    /** 低耐久アイテムへ個体識別用の固有 ID を保存する PersistentDataContainer のキー。 */
+    private NamespacedKey uidKey;
     /** /duraalert mute で通知を一時停止しているプレイヤー（永続化しない＝再起動でリセット）。 */
     private final Set<UUID> muted = new HashSet<>();
 
@@ -46,6 +49,7 @@ public final class DuraAlertPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        uidKey = new NamespacedKey(this, "uid");
         saveDefaultConfig();
         loadSettings();
         register();
@@ -134,7 +138,8 @@ public final class DuraAlertPlugin extends JavaPlugin implements Listener {
         if (muted.contains(player.getUniqueId()) || !player.hasPermission("duraalert.notify")) {
             return;
         }
-        List<LowDurabilityItem> low = DurabilityScanner.scan(player, thresholdPercent, checkInventory);
+        // 定期スキャンでは固有 ID を未付与のアイテムへ刻む（assignIdentity=true）。
+        List<LowDurabilityItem> low = DurabilityScanner.scan(player, thresholdPercent, checkInventory, uidKey, true);
 
         Set<String> already = warned.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
         Set<String> currentKeys = new HashSet<>();
@@ -161,7 +166,8 @@ public final class DuraAlertPlugin extends JavaPlugin implements Listener {
      * @return 見つかった低耐久アイテム数。
      */
     public int reportLowItems(Player player) {
-        List<LowDurabilityItem> low = DurabilityScanner.scan(player, thresholdPercent, checkInventory);
+        // /check は現状を表示するだけ。アイテムは書き換えない（assignIdentity=false）。
+        List<LowDurabilityItem> low = DurabilityScanner.scan(player, thresholdPercent, checkInventory, uidKey, false);
         if (low.isEmpty()) {
             player.sendMessage(prefix().append(Component.text(
                     "耐久値が " + thresholdPercentInt() + "% を下回っているアイテムはありません。",
